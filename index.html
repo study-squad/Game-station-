@@ -73,6 +73,7 @@ Questions? WhatsApp 8169105458<br><a href="#staff" style="color:var(--mut)">Staf
 
 <div class="wrap" id="staff" hidden>
 <header><h1>Staff Panel</h1><p><a href="#" style="color:var(--mut)">← Back to site</a></p></header>
+<input id="spin" type="password" placeholder="Staff PIN" inputmode="numeric">
 <h2>Schedule</h2>
 <input type="date" id="sdate">
 <div id="slist"></div>
@@ -83,15 +84,16 @@ Questions? WhatsApp 8169105458<br><a href="#staff" style="color:var(--mut)">Staf
 </div>
 
 <script>
-var WHATSAPP="918169105458", UPI="gamestation@upi"; // TODO: put your real UPI ID
-var OPEN=720, CLOSE=1740, STEP=30, GRACE=15, MAXD=300; // minutes from midnight; 1740 = 5 AM next day
+var API="PASTE_APPS_SCRIPT_URL_HERE"; // Google Apps Script web app URL (see setup steps)
+var WHATSAPP="918169105458", UPI="zlalpariya@okaxis";
+var OPEN=720, CLOSE=1740, STEP=30, GRACE=15, MAXD=300;
 var ACTS=[
  {id:"ps5",name:"PS5",e:"🎮",cap:6,hr:100,half:80},
  {id:"sim",name:"Steering Simulator",e:"🏎️",cap:2,hr:150,half:80},
  {id:"snooker",name:"Snooker",e:"🎱",cap:1,hr:300,half:200},
  {id:"carrom",name:"Carrom",e:"🎯",cap:1,hr:100,half:60}
 ];
-var st={act:null,slot:null,bookings:[],db:null,user:null};
+var st={act:null,slot:null,bookings:[],staff:[]};
 var $=function(i){return document.getElementById(i)};
 function pad(n){return (n<10?"0":"")+n}
 function ds(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
@@ -110,9 +112,12 @@ function why(a,date,s,d){
   for(var t=s;t<s+d;t+=STEP){if(a.cap-taken(date,a.id,t)<=0)return "full"}
   return "";
 }
+function hasAPI(){return API.indexOf("https://")===0}
+function get(q){return fetch(API+"?"+q).then(function(r){return r.json()})}
+function post(o){return fetch(API,{method:"POST",body:JSON.stringify(o)}).then(function(r){return r.json()})}
 function renderActs(){
   $("acts").innerHTML=ACTS.map(function(a){
-    return '<button class="act'+(st.act===a.id?' on':'')+'" data-id="'+a.id+'"><span class="e">'+a.e+'</span><b>'+a.name+'</b><small>₹'+a.half+' / 30 min · ₹'+a.hr+(a.id==="ps5"||a.id==="carrom"||a.id==="sim"?' / hr':' / hr')+'</small></button>'}).join("");
+    return '<button class="act'+(st.act===a.id?' on':'')+'" data-id="'+a.id+'"><span class="e">'+a.e+'</span><b>'+a.name+'</b><small>₹'+a.half+' / 30 min · ₹'+a.hr+' / hr</small></button>'}).join("");
   Array.prototype.forEach.call($("acts").children,function(el){el.onclick=function(){st.act=el.dataset.id;st.slot=null;render()}});
 }
 function renderSlots(){
@@ -126,76 +131,78 @@ function renderSlots(){
   box.innerHTML=html;
   Array.prototype.forEach.call(box.children,function(el){el.onclick=function(){st.slot=+el.dataset.s;render()}});
 }
-function amounts(){var a=actOf(st.act),t=price(a,+$("dur").value);return{total:t,now:$("pay").value==="full"?t:Math.ceil(t/2)}}
+function amounts(){if(location.hash==="#test")return{total:1,now:1};var a=actOf(st.act),t=price(a,+$("dur").value);return{total:t,now:$("pay").value==="full"?t:Math.ceil(t/2)}}
+window.addEventListener("hashchange",function(){summary()});
 function summary(){
   var ok=st.act&&st.slot!==null;
   if(!ok){$("sum").textContent="Select a game and a start time."}
   else{var a=actOf(st.act),d=+$("dur").value,m=amounts();
-    $("sum").innerHTML='<b>'+a.name+'</b> · '+$("date").value+'<br>'+fm(st.slot)+' – '+fm(st.slot+d)+' ('+dl(d)+')<br>Total <b>₹'+m.total+'</b> · Pay now <b>₹'+m.now+'</b>'+(m.now<m.total?' · ₹'+(m.total-m.now)+' at counter':'')}
+    $("sum").innerHTML=(location.hash==="#test"?'<b style="color:#e5a000">TEST MODE: ₹1 payment</b><br>':'')+'<b>'+a.name+'</b> · '+$("date").value+'<br>'+fm(st.slot)+' – '+fm(st.slot+d)+' ('+dl(d)+')<br>Total <b>₹'+m.total+'</b> · Pay now <b>₹'+m.now+'</b>'+(m.now<m.total?' · ₹'+(m.total-m.now)+' at counter':'')}
   $("book").disabled=!(ok&&$("name").value.trim()&&$("phone").value.trim().length>=8);
 }
 function render(){renderActs();renderSlots();summary()}
 function wa(text){return "https://wa.me/"+WHATSAPP+"?text="+encodeURIComponent(text)}
 function waText(r,a,extra){return "Hi Game Station! Booking: "+a.name+", "+r.date+", "+fm(r.start)+"–"+fm(r.start+r.dur)+" ("+dl(r.dur)+"), "+r.players+" player(s). Name: "+r.name+", Phone: "+r.phone+". Total ₹"+r.total+", paying ₹"+r.now+" now."+(extra||"")}
+function load(){if(!hasAPI())return;get("action=list").then(function(j){if(j.ok){st.bookings=j.bookings;render()}}).catch(function(){})}
 
-$("book").onclick=async function(){
+$("book").onclick=function(){
   var a=actOf(st.act),d=+$("dur").value,date=$("date").value,m=amounts();
   if(why(a,date,st.slot,d)){$("out").innerHTML='<div class="msg" style="border-color:#e5484d">That slot was just taken. Please pick another.</div>';render();return}
-  var r={date:date,act:a.id,start:st.slot,dur:d,players:+$("players").value,name:$("name").value.trim(),phone:$("phone").value.trim(),pay:$("pay").value,total:m.total,now:m.now,paid:false,at:Date.now(),src:"online"};
+  var r={action:"book",date:date,act:a.id,start:st.slot,dur:d,players:+$("players").value,name:$("name").value.trim(),phone:$("phone").value.trim(),pay:$("pay").value,total:m.total,now:m.now};
   var upi="upi://pay?pa="+UPI+"&pn="+encodeURIComponent("Game Station")+"&am="+m.now+"&cu=INR&tn="+encodeURIComponent(a.name+" "+date+" "+fm(r.start));
-  var saved=false;
-  try{
-    if(!st.db||!st.user)throw 0;
-    var ref=st.db.doc("bookings/"+await st.user.id()),cur=await ref.get(),items=((cur.data()||{}).items)||[];
-    items.push(r);await ref.set({items:items});saved=true;
-  }catch(e){}
-  $("out").innerHTML=(saved?'<div class="msg">✅ Slot held for you, '+esc(r.name)+'! Pay ₹'+m.now+' to confirm.</div>':'<div class="msg" style="border-color:#e5a000;background:transparent">Online saving isn’t available here. Send your booking on WhatsApp and we’ll confirm it.</div>')+
-    (saved?'<a class="btn" href="'+upi+'">Pay ₹'+m.now+' with UPI</a>':'')+
-    '<a class="btn alt" target="_blank" rel="noopener" href="'+wa(waText(r,a,saved?" I have paid, screenshot attached.":""))+'">'+(saved?'Send payment screenshot on WhatsApp':'Book on WhatsApp')+'</a>';
-  if(saved){st.slot=null;render()}
+  function done(saved){
+    $("book").disabled=false;
+    $("out").innerHTML=(saved?'<div class="msg">✅ Slot held for you, '+esc(r.name)+'! Pay ₹'+m.now+' to confirm.</div>':'<div class="msg" style="border-color:#e5a000;background:transparent">Couldn’t save online. Send your booking on WhatsApp and we’ll confirm it.</div>')+
+      (saved?'<a class="btn" href="'+upi+'">Pay ₹'+m.now+' with UPI</a>':'')+
+      '<a class="btn alt" target="_blank" rel="noopener" href="'+wa(waText(r,a,saved?" I have paid, screenshot attached.":""))+'">'+(saved?'Send payment screenshot on WhatsApp':'Book on WhatsApp')+'</a>';
+    if(saved){st.slot=null;load();render()}
+  }
+  if(!hasAPI()){done(false);return}
+  $("book").disabled=true;
+  post(r).then(function(j){
+    if(j&&j.ok)done(true);
+    else{$("book").disabled=false;$("out").innerHTML='<div class="msg" style="border-color:#e5484d">'+(j&&j.error==="taken"?'Sorry, that slot was just booked. Please pick another.':'Couldn’t book that slot. Please try another.')+'</div>';load()}
+  }).catch(function(){done(false)});
 };
 ["name","phone","players","pay"].forEach(function(i){$(i).oninput=summary});
 $("dur").innerHTML=(function(){var o="";for(var d=30;d<=MAXD;d+=30)o+='<option value="'+d+'">'+dl(d)+'</option>';return o})();
 $("dur").onchange=function(){st.slot=null;render()};
 $("date").min=biz().date;$("date").value=biz().date;
 $("date").onchange=function(){st.slot=null;render()};
-render();
+render();load();setInterval(load,20000);
 
-(async function(){
-  try{
-    if(!window.claude)return;
-    var db=await claude.use("db");if(!db)return;
-    st.db=db;st.user=await claude.use("user");
-    function staffOn(){return location.hash==="#staff"&&st.user&&st.user.canEdit()}
-    function mutate(id,i,fn){var ref=st.db.doc("bookings/"+id);return ref.get().then(function(c){var it=((c.data()||{}).items)||[];fn(it,i);return ref.set({items:it})})}
-    function renderStaff(){
-      var d=$("sdate").value||biz().date;
-      var list=st.bookings.filter(function(b){return b.date===d}).sort(function(a,b){return a.start-b.start});
-      $("slist").innerHTML=list.length?list.map(function(b){var a=actOf(b.act)||{name:b.act},w=b.src==="walkin";
-        var at='data-d="'+esc(b._doc)+'" data-i="'+b._i+'"';
-        return '<div class="row"><div><b>'+fm(b.start)+' – '+fm(b.start+b.dur)+'</b> · '+esc(a.name)+'<br><small>'+esc(b.name)+(b.phone?' · '+esc(b.phone):'')+' · '+(w?'walk-in':'online · '+(b.players||1)+' player(s) · ₹'+b.total+' · '+(b.paid?'✅ paid ₹'+b.now:'⏳ unpaid (₹'+b.now+' due)'))+(b.arrived&&!w?' · here':(!w&&!held(b)?' · released':''))+'</small></div><div>'+
-          (!w&&!b.paid?'<button data-a="paid" '+at+'>Paid</button>':'')+(!w&&!b.arrived?'<button data-a="arr" '+at+'>Arrived</button>':'')+'<button data-a="del" '+at+'>Cancel</button></div></div>'}).join(""):'<p style="color:var(--mut)">No bookings for this day.</p>';
-      Array.prototype.forEach.call($("slist").querySelectorAll("button"),function(el){el.onclick=function(){
-        mutate(el.dataset.d,+el.dataset.i,function(it,i){var k=el.dataset.a;if(k==="paid")it[i].paid=true;else if(k==="arr")it[i].arrived=true;else it.splice(i,1)}).catch(function(){$("sout").textContent="Couldn’t update. Try again."})}});
-    }
-    function route(){var s=staffOn();$("staff").hidden=!s;$("main").hidden=s;if(s)renderStaff()}
-    $("wact").innerHTML=ACTS.map(function(a){return '<option value="'+a.id+'">'+a.name+'</option>'}).join("");
-    var so="",n=biz().min;for(var s=OPEN;s<CLOSE;s+=STEP)so+='<option value="'+s+'"'+(n>=s&&n<s+STEP?' selected':'')+'>'+fm(s)+'</option>';$("wstart").innerHTML=so;
-    $("wdur").innerHTML=$("dur").innerHTML;
-    $("sdate").value=biz().date;$("sdate").onchange=renderStaff;
-    $("wadd").onclick=function(){
-      var r={date:$("sdate").value||biz().date,act:$("wact").value,start:+$("wstart").value,dur:+$("wdur").value,name:$("wname").value.trim()||"Walk-in",phone:"",at:Date.now(),src:"walkin",arrived:true};
-      var ref=st.db.doc("bookings/walkin");
-      ref.get().then(function(c){var it=((c.data()||{}).items)||[];it.push(r);return ref.set({items:it})}).then(function(){$("wname").value="";$("sout").textContent="Slot blocked."}).catch(function(){$("sout").textContent="Couldn’t save. Try again."});
-    };
-    window.addEventListener("hashchange",route);
-    db.collection("bookings").onSnapshot(function(snap){
-      var all=[];snap.docs.forEach(function(d){(((d.data()||{}).items)||[]).forEach(function(b,i){var x={};for(var k in b)x[k]=b[k];x._doc=d.id;x._i=i;all.push(x)})});
-      st.bookings=all;render();if(staffOn())renderStaff();
-    },function(){});
-    route();
-  }catch(e){}
-})();
+// ---------- Staff panel (#staff, protected by PIN) ----------
+function pin(){return $("spin").value.trim()}
+function staffOn(){return location.hash==="#staff"}
+function renderStaff(){
+  if(!staffOn()||!hasAPI())return;
+  if(!pin()){$("slist").innerHTML='<p style="color:var(--mut)">Enter the staff PIN above.</p>';return}
+  get("action=staff&pin="+encodeURIComponent(pin())).then(function(j){
+    if(!j.ok){$("slist").innerHTML='<p>Wrong PIN.</p>';return}
+    st.staff=j.bookings;drawStaff();
+  }).catch(function(){$("sout").textContent="Couldn’t reach the booking sheet."});
+}
+function drawStaff(){
+  var d=$("sdate").value||biz().date;
+  var list=st.staff.filter(function(b){return b.date===d}).sort(function(a,b){return a.start-b.start});
+  $("slist").innerHTML=list.length?list.map(function(b){var a=actOf(b.act)||{name:b.act},w=b.src==="walkin",at='data-id="'+esc(b.id)+'"';
+    return '<div class="row"><div><b>'+fm(b.start)+' – '+fm(b.start+b.dur)+'</b> · '+esc(a.name)+'<br><small>'+esc(b.name)+(b.phone?' · '+esc(b.phone):'')+' · '+(w?'walk-in':'online · '+b.players+' player(s) · ₹'+b.total+' · '+(b.paid?'✅ paid ₹'+b.now:'⏳ unpaid (₹'+b.now+' due)'))+(b.arrived&&!w?' · here':(!w&&!held(b)?' · released':''))+'</small></div><div>'+
+      (!w&&!b.paid?'<button data-a="paid" '+at+'>Paid</button>':'')+(!w&&!b.arrived?'<button data-a="arrived" '+at+'>Arrived</button>':'')+'<button data-a="cancel" '+at+'>Cancel</button></div></div>'}).join(""):'<p style="color:var(--mut)">No bookings for this day.</p>';
+  Array.prototype.forEach.call($("slist").querySelectorAll("button"),function(el){el.onclick=function(){
+    post({action:el.dataset.a,id:el.dataset.id,pin:pin()}).then(renderStaff).then(load)}});
+}
+$("wact").innerHTML=ACTS.map(function(a){return '<option value="'+a.id+'">'+a.name+'</option>'}).join("");
+(function(){var so="",n=biz().min;for(var s=OPEN;s<CLOSE;s+=STEP)so+='<option value="'+s+'"'+(n>=s&&n<s+STEP?' selected':'')+'>'+fm(s)+'</option>';$("wstart").innerHTML=so})();
+$("wdur").innerHTML=$("dur").innerHTML;
+$("sdate").value=biz().date;$("sdate").onchange=drawStaff;$("spin").onchange=renderStaff;
+$("wadd").onclick=function(){
+  post({action:"walkin",pin:pin(),date:$("sdate").value||biz().date,act:$("wact").value,start:+$("wstart").value,dur:+$("wdur").value,name:$("wname").value.trim()||"Walk-in"}).then(function(j){
+    $("sout").textContent=j.ok?"Slot blocked.":(j.error==="pin"?"Wrong PIN.":j.error==="taken"?"That slot is already full.":"Couldn’t save.");
+    if(j.ok){$("wname").value="";renderStaff();load()}
+  }).catch(function(){$("sout").textContent="Couldn’t reach the booking sheet."});
+};
+function route(){var s=staffOn();$("staff").hidden=!s;$("main").hidden=s;if(s)renderStaff()}
+window.addEventListener("hashchange",route);route();setInterval(function(){if(staffOn())renderStaff()},15000);
 </script>
 </body>
 </html>
