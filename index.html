@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Game Station – Book Your Slot</title>
+<style>
+:root{--bg:#f4f5fb;--card:#fff;--tx:#14142b;--mut:#6a6a8a;--ac:#6c3cff;--ac2:#00b8d9;--bd:#e0e0f0;--ok:#12a150;--no:#c9c9d9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0b1a;--card:#15152b;--tx:#f1f1ff;--mut:#9a9ac0;--ac:#8b63ff;--ac2:#22d3ee;--bd:#2a2a4a;--ok:#3ddc84;--no:#33334f}}
+:root[data-theme="dark"]{--bg:#0b0b1a;--card:#15152b;--tx:#f1f1ff;--mut:#9a9ac0;--ac:#8b63ff;--ac2:#22d3ee;--bd:#2a2a4a;--ok:#3ddc84;--no:#33334f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 40px}
+header{padding:36px 0 20px;text-align:center}
+h1{margin:0;font-size:2.2rem;letter-spacing:.5px;background:linear-gradient(90deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{color:var(--mut);margin:6px 0 0}
+h2{font-size:1.1rem;margin:28px 0 12px}
+h2 span{display:inline-block;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;background:var(--ac);color:#fff;font-size:.8rem;margin-right:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.act{background:var(--card);border:2px solid var(--bd);border-radius:14px;padding:14px;cursor:pointer;text-align:left;color:var(--tx);font:inherit}
+.act .e{font-size:1.8rem}.act b{display:block}.act small{color:var(--mut)}
+.act.on{border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 25%,transparent)}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font:inherit;margin-bottom:10px}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.slot{padding:8px 2px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font:inherit;font-size:.78rem;cursor:pointer;text-align:center}
+.slot small{display:block;color:var(--ok);font-size:.65rem}
+.slot.full{background:var(--no);color:var(--mut);cursor:not-allowed}.slot.full small{color:var(--mut)}
+.slot.on{background:var(--ac);border-color:var(--ac);color:#fff}.slot.on small{color:#fff}
+.btn{display:block;width:100%;padding:14px;border:0;border-radius:12px;background:linear-gradient(90deg,var(--ac),var(--ac2));color:#fff;font:inherit;font-weight:700;font-size:1rem;cursor:pointer;margin-top:8px;text-align:center;text-decoration:none}
+.btn.alt{background:#25d366}.btn.line{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.sum{background:var(--card);border:1px dashed var(--ac);border-radius:12px;padding:12px;margin:12px 0;font-size:.95rem}
+.msg{padding:12px;border-radius:10px;margin-top:12px;background:color-mix(in srgb,var(--ok) 15%,transparent);border:1px solid var(--ok)}
+.note{color:var(--mut);font-size:.82rem;margin:-4px 0 10px}
+.info{margin-top:30px;text-align:center;color:var(--mut);font-size:.9rem}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px;margin-bottom:8px}
+.row small{color:var(--mut)}.row button{margin:2px 0 2px 6px;padding:6px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;cursor:pointer}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style>
+</head>
+<body>
+<div class="wrap" id="main">
+<header><h1>🎮 GAME STATION</h1><p>PS5 · Steering Simulator · Snooker · Carrom<br>Open daily 12 PM – 5 AM</p></header>
+
+<h2><span>1</span>Pick your game</h2>
+<div class="grid" id="acts"></div>
+
+<h2><span>2</span>Date &amp; duration</h2>
+<input type="date" id="date">
+<p class="note">Late-night slots after midnight count under the previous day’s date.</p>
+<select id="dur"></select>
+
+<h2><span>3</span>Pick start time</h2>
+<div class="slots" id="slots"></div>
+
+<h2><span>4</span>Your details</h2>
+<input id="name" placeholder="Your name" autocomplete="name">
+<input id="phone" placeholder="Phone number" inputmode="tel" autocomplete="tel">
+<select id="players"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+<p class="note">Number of players (max 4)</p>
+<select id="pay"><option value="half">Pay 50% advance, rest at the counter</option><option value="full">Pay full amount now</option></select>
+<div class="sum" id="sum">Select a game and a start time.</div>
+<button class="btn" id="book" disabled>Book Slot</button>
+<div id="out"></div>
+
+<div class="info">
+<a class="btn line" href="https://maps.app.goo.gl/JJKpYWCHJkdhoqju5?g_st=ic" target="_blank" rel="noopener">📍 Find us on Google Maps</a><br>
+Advance payment is non-refundable. Online bookings are held 15 minutes after the start time.<br>
+Questions? WhatsApp 8169105458<br><a href="#staff" style="color:var(--mut)">Staff</a>
+</div>
+</div>
+
+<div class="wrap" id="staff" hidden>
+<header><h1>Staff Panel</h1><p><a href="#" style="color:var(--mut)">← Back to site</a></p></header>
+<h2>Schedule</h2>
+<input type="date" id="sdate">
+<div id="slist"></div>
+<h2>Add walk-in</h2>
+<div class="two"><select id="wact"></select><select id="wstart"></select><select id="wdur"></select><input id="wname" placeholder="Name (optional)"></div>
+<button class="btn" id="wadd">Block this slot</button>
+<div id="sout"></div>
+</div>
+
+<script>
+var WHATSAPP="918169105458", UPI="gamestation@upi"; // TODO: put your real UPI ID
+var OPEN=720, CLOSE=1740, STEP=30, GRACE=15, MAXD=300; // minutes from midnight; 1740 = 5 AM next day
+var ACTS=[
+ {id:"ps5",name:"PS5",e:"🎮",cap:6,hr:100,half:80},
+ {id:"sim",name:"Steering Simulator",e:"🏎️",cap:2,hr:150,half:80},
+ {id:"snooker",name:"Snooker",e:"🎱",cap:1,hr:300,half:200},
+ {id:"carrom",name:"Carrom",e:"🎯",cap:1,hr:100,half:60}
+];
+var st={act:null,slot:null,bookings:[],db:null,user:null};
+var $=function(i){return document.getElementById(i)};
+function pad(n){return (n<10?"0":"")+n}
+function ds(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function biz(){var d=new Date(),m=d.getHours()*60+d.getMinutes();if(m<300){d.setDate(d.getDate()-1);m+=1440}return{date:ds(d),min:m}}
+function fm(m){m=m%1440;var h=Math.floor(m/60),x=h%12||12;return x+":"+pad(m%60)+" "+(h>=12?"PM":"AM")}
+function dl(d){var h=Math.floor(d/60),m=d%60;return (h?h+" hr":"")+(h&&m?" ":"")+(m?m+" min":"")}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]})}
+function actOf(id){return ACTS.filter(function(a){return a.id===id})[0]}
+function price(a,d){return Math.floor(d/60)*a.hr+(d%60?a.half:0)}
+function held(b){if(b.arrived||b.src==="walkin")return true;var n=biz();if(b.date!==n.date)return b.date>n.date;return n.min<b.start+GRACE}
+function taken(date,act,s){return st.bookings.filter(function(b){return b.date===date&&b.act===act&&s>=b.start&&s<b.start+b.dur&&held(b)}).length}
+function why(a,date,s,d){
+  var n=biz();
+  if(date===n.date&&s<=n.min)return "passed";
+  if(s+d>CLOSE)return "too long";
+  for(var t=s;t<s+d;t+=STEP){if(a.cap-taken(date,a.id,t)<=0)return "full"}
+  return "";
+}
+function renderActs(){
+  $("acts").innerHTML=ACTS.map(function(a){
+    return '<button class="act'+(st.act===a.id?' on':'')+'" data-id="'+a.id+'"><span class="e">'+a.e+'</span><b>'+a.name+'</b><small>₹'+a.half+' / 30 min · ₹'+a.hr+(a.id==="ps5"||a.id==="carrom"||a.id==="sim"?' / hr':' / hr')+'</small></button>'}).join("");
+  Array.prototype.forEach.call($("acts").children,function(el){el.onclick=function(){st.act=el.dataset.id;st.slot=null;render()}});
+}
+function renderSlots(){
+  var box=$("slots");
+  if(!st.act){box.innerHTML='<p style="color:var(--mut);grid-column:1/-1;margin:0">Pick a game first.</p>';return}
+  var a=actOf(st.act),date=$("date").value,d=+$("dur").value,html="";
+  for(var s=OPEN;s<CLOSE;s+=STEP){
+    var w=why(a,date,s,d),left=a.cap-taken(date,a.id,s);
+    html+='<button class="slot'+(w?' full':'')+(st.slot===s?' on':'')+'" data-s="'+s+'"'+(w?' disabled':'')+'>'+fm(s)+'<small>'+(w||(left+' left'))+'</small></button>';
+  }
+  box.innerHTML=html;
+  Array.prototype.forEach.call(box.children,function(el){el.onclick=function(){st.slot=+el.dataset.s;render()}});
+}
+function amounts(){var a=actOf(st.act),t=price(a,+$("dur").value);return{total:t,now:$("pay").value==="full"?t:Math.ceil(t/2)}}
+function summary(){
+  var ok=st.act&&st.slot!==null;
+  if(!ok){$("sum").textContent="Select a game and a start time."}
+  else{var a=actOf(st.act),d=+$("dur").value,m=amounts();
+    $("sum").innerHTML='<b>'+a.name+'</b> · '+$("date").value+'<br>'+fm(st.slot)+' – '+fm(st.slot+d)+' ('+dl(d)+')<br>Total <b>₹'+m.total+'</b> · Pay now <b>₹'+m.now+'</b>'+(m.now<m.total?' · ₹'+(m.total-m.now)+' at counter':'')}
+  $("book").disabled=!(ok&&$("name").value.trim()&&$("phone").value.trim().length>=8);
+}
+function render(){renderActs();renderSlots();summary()}
+function wa(text){return "https://wa.me/"+WHATSAPP+"?text="+encodeURIComponent(text)}
+function waText(r,a,extra){return "Hi Game Station! Booking: "+a.name+", "+r.date+", "+fm(r.start)+"–"+fm(r.start+r.dur)+" ("+dl(r.dur)+"), "+r.players+" player(s). Name: "+r.name+", Phone: "+r.phone+". Total ₹"+r.total+", paying ₹"+r.now+" now."+(extra||"")}
+
+$("book").onclick=async function(){
+  var a=actOf(st.act),d=+$("dur").value,date=$("date").value,m=amounts();
+  if(why(a,date,st.slot,d)){$("out").innerHTML='<div class="msg" style="border-color:#e5484d">That slot was just taken. Please pick another.</div>';render();return}
+  var r={date:date,act:a.id,start:st.slot,dur:d,players:+$("players").value,name:$("name").value.trim(),phone:$("phone").value.trim(),pay:$("pay").value,total:m.total,now:m.now,paid:false,at:Date.now(),src:"online"};
+  var upi="upi://pay?pa="+UPI+"&pn="+encodeURIComponent("Game Station")+"&am="+m.now+"&cu=INR&tn="+encodeURIComponent(a.name+" "+date+" "+fm(r.start));
+  var saved=false;
+  try{
+    if(!st.db||!st.user)throw 0;
+    var ref=st.db.doc("bookings/"+await st.user.id()),cur=await ref.get(),items=((cur.data()||{}).items)||[];
+    items.push(r);await ref.set({items:items});saved=true;
+  }catch(e){}
+  $("out").innerHTML=(saved?'<div class="msg">✅ Slot held for you, '+esc(r.name)+'! Pay ₹'+m.now+' to confirm.</div>':'<div class="msg" style="border-color:#e5a000;background:transparent">Online saving isn’t available here. Send your booking on WhatsApp and we’ll confirm it.</div>')+
+    (saved?'<a class="btn" href="'+upi+'">Pay ₹'+m.now+' with UPI</a>':'')+
+    '<a class="btn alt" target="_blank" rel="noopener" href="'+wa(waText(r,a,saved?" I have paid, screenshot attached.":""))+'">'+(saved?'Send payment screenshot on WhatsApp':'Book on WhatsApp')+'</a>';
+  if(saved){st.slot=null;render()}
+};
+["name","phone","players","pay"].forEach(function(i){$(i).oninput=summary});
+$("dur").innerHTML=(function(){var o="";for(var d=30;d<=MAXD;d+=30)o+='<option value="'+d+'">'+dl(d)+'</option>';return o})();
+$("dur").onchange=function(){st.slot=null;render()};
+$("date").min=biz().date;$("date").value=biz().date;
+$("date").onchange=function(){st.slot=null;render()};
+render();
+
+(async function(){
+  try{
+    if(!window.claude)return;
+    var db=await claude.use("db");if(!db)return;
+    st.db=db;st.user=await claude.use("user");
+    function staffOn(){return location.hash==="#staff"&&st.user&&st.user.canEdit()}
+    function mutate(id,i,fn){var ref=st.db.doc("bookings/"+id);return ref.get().then(function(c){var it=((c.data()||{}).items)||[];fn(it,i);return ref.set({items:it})})}
+    function renderStaff(){
+      var d=$("sdate").value||biz().date;
+      var list=st.bookings.filter(function(b){return b.date===d}).sort(function(a,b){return a.start-b.start});
+      $("slist").innerHTML=list.length?list.map(function(b){var a=actOf(b.act)||{name:b.act},w=b.src==="walkin";
+        var at='data-d="'+esc(b._doc)+'" data-i="'+b._i+'"';
+        return '<div class="row"><div><b>'+fm(b.start)+' – '+fm(b.start+b.dur)+'</b> · '+esc(a.name)+'<br><small>'+esc(b.name)+(b.phone?' · '+esc(b.phone):'')+' · '+(w?'walk-in':'online · '+(b.players||1)+' player(s) · ₹'+b.total+' · '+(b.paid?'✅ paid ₹'+b.now:'⏳ unpaid (₹'+b.now+' due)'))+(b.arrived&&!w?' · here':(!w&&!held(b)?' · released':''))+'</small></div><div>'+
+          (!w&&!b.paid?'<button data-a="paid" '+at+'>Paid</button>':'')+(!w&&!b.arrived?'<button data-a="arr" '+at+'>Arrived</button>':'')+'<button data-a="del" '+at+'>Cancel</button></div></div>'}).join(""):'<p style="color:var(--mut)">No bookings for this day.</p>';
+      Array.prototype.forEach.call($("slist").querySelectorAll("button"),function(el){el.onclick=function(){
+        mutate(el.dataset.d,+el.dataset.i,function(it,i){var k=el.dataset.a;if(k==="paid")it[i].paid=true;else if(k==="arr")it[i].arrived=true;else it.splice(i,1)}).catch(function(){$("sout").textContent="Couldn’t update. Try again."})}});
+    }
+    function route(){var s=staffOn();$("staff").hidden=!s;$("main").hidden=s;if(s)renderStaff()}
+    $("wact").innerHTML=ACTS.map(function(a){return '<option value="'+a.id+'">'+a.name+'</option>'}).join("");
+    var so="",n=biz().min;for(var s=OPEN;s<CLOSE;s+=STEP)so+='<option value="'+s+'"'+(n>=s&&n<s+STEP?' selected':'')+'>'+fm(s)+'</option>';$("wstart").innerHTML=so;
+    $("wdur").innerHTML=$("dur").innerHTML;
+    $("sdate").value=biz().date;$("sdate").onchange=renderStaff;
+    $("wadd").onclick=function(){
+      var r={date:$("sdate").value||biz().date,act:$("wact").value,start:+$("wstart").value,dur:+$("wdur").value,name:$("wname").value.trim()||"Walk-in",phone:"",at:Date.now(),src:"walkin",arrived:true};
+      var ref=st.db.doc("bookings/walkin");
+      ref.get().then(function(c){var it=((c.data()||{}).items)||[];it.push(r);return ref.set({items:it})}).then(function(){$("wname").value="";$("sout").textContent="Slot blocked."}).catch(function(){$("sout").textContent="Couldn’t save. Try again."});
+    };
+    window.addEventListener("hashchange",route);
+    db.collection("bookings").onSnapshot(function(snap){
+      var all=[];snap.docs.forEach(function(d){(((d.data()||{}).items)||[]).forEach(function(b,i){var x={};for(var k in b)x[k]=b[k];x._doc=d.id;x._i=i;all.push(x)})});
+      st.bookings=all;render();if(staffOn())renderStaff();
+    },function(){});
+    route();
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
